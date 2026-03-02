@@ -9,9 +9,7 @@ def test_init_db_creates_tables(tmp_data_dir: Path) -> None:
     init_db(db_path)
 
     conn = sqlite3.connect(db_path)
-    cursor = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    )
+    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     tables = {row[0] for row in cursor.fetchall()}
     conn.close()
 
@@ -25,9 +23,7 @@ def test_init_db_idempotent(tmp_data_dir: Path) -> None:
     init_db(db_path)
 
     conn = sqlite3.connect(db_path)
-    cursor = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    )
+    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     tables = {row[0] for row in cursor.fetchall()}
     conn.close()
 
@@ -63,8 +59,14 @@ def test_segments_table_schema(db: Path) -> None:
     conn.close()
 
     expected = {
-        "id", "type", "sort_order", "title",
-        "content", "metadata", "created_at", "updated_at",
+        "id",
+        "type",
+        "sort_order",
+        "title",
+        "content",
+        "metadata",
+        "created_at",
+        "updated_at",
     }
     assert columns == expected
 

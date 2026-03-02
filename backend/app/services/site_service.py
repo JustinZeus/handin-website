@@ -8,9 +8,7 @@ DEFAULT_SITE_TITLE = "Untitled Site"
 def get_site_title(db_path: Path, *, default: str = DEFAULT_SITE_TITLE) -> str:
     conn = get_connection(db_path)
     try:
-        row = conn.execute(
-            "SELECT value FROM site WHERE key = ?", ("title",)
-        ).fetchone()
+        row = conn.execute("SELECT value FROM site WHERE key = ?", ("title",)).fetchone()
         if row is None:
             return default
         return str(row["value"])

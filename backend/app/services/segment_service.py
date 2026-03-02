@@ -36,8 +36,16 @@ def create_segment(db_path: Path, request: SegmentCreateRequest) -> Segment:
         cols = "id, type, sort_order, title, content, metadata, created_at, updated_at"
         conn.execute(
             f"INSERT INTO segments ({cols}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (str(segment_id), request.type.value, sort_order, request.title,
-             request.content, metadata_json, now, now),
+            (
+                str(segment_id),
+                request.type.value,
+                sort_order,
+                request.title,
+                request.content,
+                metadata_json,
+                now,
+                now,
+            ),
         )
         conn.commit()
 
@@ -58,9 +66,7 @@ def create_segment(db_path: Path, request: SegmentCreateRequest) -> Segment:
 def list_segments(db_path: Path) -> list[Segment]:
     conn = get_connection(db_path)
     try:
-        rows = conn.execute(
-            "SELECT * FROM segments ORDER BY sort_order ASC"
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM segments ORDER BY sort_order ASC").fetchall()
         return [_row_to_segment(row) for row in rows]
     finally:
         conn.close()
@@ -69,9 +75,7 @@ def list_segments(db_path: Path) -> list[Segment]:
 def get_segment(db_path: Path, segment_id: UUID) -> Segment | None:
     conn = get_connection(db_path)
     try:
-        row = conn.execute(
-            "SELECT * FROM segments WHERE id = ?", (str(segment_id),)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM segments WHERE id = ?", (str(segment_id),)).fetchone()
         if row is None:
             return None
         return _row_to_segment(row)
@@ -94,8 +98,7 @@ def update_segment(
         title = request.title if request.title is not None else existing["title"]
         content = request.content if request.content is not None else existing["content"]
         metadata_json = (
-            json.dumps(request.metadata) if request.metadata is not None
-            else existing["metadata"]
+            json.dumps(request.metadata) if request.metadata is not None else existing["metadata"]
         )
 
         conn.execute(
@@ -113,9 +116,7 @@ def update_segment(
 def delete_segment(db_path: Path, segment_id: UUID) -> bool:
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute(
-            "DELETE FROM segments WHERE id = ?", (str(segment_id),)
-        )
+        cursor = conn.execute("DELETE FROM segments WHERE id = ?", (str(segment_id),))
         conn.commit()
         return cursor.rowcount > 0
     finally:
@@ -125,10 +126,7 @@ def delete_segment(db_path: Path, segment_id: UUID) -> bool:
 def reorder_segments(db_path: Path, segment_ids: list[UUID]) -> list[Segment]:
     conn = get_connection(db_path)
     try:
-        existing_ids = {
-            row["id"]
-            for row in conn.execute("SELECT id FROM segments").fetchall()
-        }
+        existing_ids = {row["id"] for row in conn.execute("SELECT id FROM segments").fetchall()}
         requested_ids = {str(sid) for sid in segment_ids}
         missing = requested_ids - existing_ids
         if missing:

@@ -17,9 +17,7 @@ DbPath = Annotated[Path, Depends(get_db_path)]
 
 @router.get("/")
 def get_site(db_path: DbPath) -> SiteResponse:
-    title = site_service.get_site_title(
-        db_path, default=get_settings().site_title
-    )
+    title = site_service.get_site_title(db_path, default=get_settings().site_title)
     return SiteResponse(title=title)
 
 

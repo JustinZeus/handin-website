@@ -26,9 +26,7 @@ def init_db(db_path: Path) -> None:
                 updated_at TEXT NOT NULL
             )
         """)
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_segments_order ON segments(sort_order)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_segments_order ON segments(sort_order)")
         conn.commit()
     finally:
         conn.close()
