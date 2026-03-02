@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary-50: #fffbeb;
+  --color-primary-100: #fff3c4;
+  --color-primary-200: #fce588;
+  --color-primary-300: #ffcd00;
+  --color-primary-400: #e6b800;
+  --color-primary-500: #cc9900;
+  --color-primary-600: #997300;
+  --color-primary-700: #664d00;
+}
