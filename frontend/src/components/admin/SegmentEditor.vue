@@ -26,10 +26,18 @@ const teamMembers = ref<{ name: string; student_number: string }[]>(
 const newMemberName = ref("");
 const newMemberNumber = ref("");
 
+function normaliseUrl(url: string): string {
+  const trimmed = url.trim();
+  if (trimmed && !/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
 function handleSave() {
   const updates: { title?: string; content?: string; metadata?: Record<string, unknown> } = {};
   if (title.value !== props.segment.title) updates.title = title.value;
-  if (content.value !== props.segment.content) updates.content = content.value;
+  const savedContent =
+    props.segment.type === "iframe" ? normaliseUrl(content.value) : content.value;
+  if (savedContent !== props.segment.content) updates.content = savedContent;
   if (props.segment.type === "team") {
     metadata.value = { ...metadata.value, members: teamMembers.value };
   }
@@ -86,13 +94,17 @@ const assetAcceptMap: Record<string, string> = {
       <RichTextEditor v-if="segment.type === 'markdown'" v-model="content" />
 
       <!-- Iframe: URL input -->
-      <input
-        v-else-if="segment.type === 'iframe'"
-        v-model="content"
-        type="url"
-        placeholder="https://..."
-        class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
-      />
+      <div v-else-if="segment.type === 'iframe'">
+        <input
+          v-model="content"
+          type="url"
+          placeholder="https://..."
+          class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+        />
+        <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">
+          Most major sites (Google, GitHub, etc.) block embedding. Use dedicated embed URLs where available, e.g. YouTube's <code>youtube.com/embed/…</code>.
+        </p>
+      </div>
 
       <!-- PDF / Video / Audio: file upload + URL display -->
       <div v-else-if="segment.type === 'pdf' || segment.type === 'video' || segment.type === 'audio'">

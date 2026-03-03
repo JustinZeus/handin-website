@@ -13,6 +13,8 @@ const { pages, fetchPages } = usePages();
 const { isAdmin, authHeaders } = useAdmin();
 
 const mobileNavOpen = ref(false);
+const scrolledDown = ref(false);
+const mainEl = ref<HTMLElement | null>(null);
 const siteTitle = ref("Untitled Site");
 const editingSiteTitle = ref(false);
 const siteTitleInput = ref("");
@@ -62,6 +64,14 @@ watch(pages, (loaded) => {
     void router.replace({ name: "page", params: { slug: loaded[0].slug } });
   }
 });
+
+function handleScroll(e: Event) {
+  scrolledDown.value = (e.target as HTMLElement).scrollTop > 200;
+}
+
+function scrollToTop() {
+  mainEl.value?.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 onMounted(async () => {
   await Promise.all([loadSiteTitle(), fetchPages()]);
@@ -145,13 +155,30 @@ onMounted(async () => {
       </div>
 
       <!-- Scrollable content -->
-      <main class="flex-1 overflow-y-auto">
+      <main ref="mainEl" class="flex-1 overflow-y-auto" @scroll="handleScroll">
         <div class="mx-auto max-w-4xl px-6 py-10">
           <slot />
         </div>
       </main>
     </div>
   </div>
+
+  <!-- Scroll to top FAB -->
+  <Teleport to="body">
+    <Transition name="scroll-top-fade">
+      <button
+        v-if="scrolledDown"
+        class="fixed bottom-20 right-6 z-30 flex items-center gap-2 rounded-full bg-primary-300 px-5 py-3 font-medium text-gray-900 shadow-lg transition-all hover:bg-primary-400 hover:shadow-xl active:scale-95"
+        aria-label="Scroll to top"
+        @click="scrollToTop"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+        </svg>
+        Back to top
+      </button>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -171,5 +198,14 @@ onMounted(async () => {
 .sidebar-slide-enter-from,
 .sidebar-slide-leave-to {
   transform: translateX(-100%);
+}
+
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 200ms ease;
+}
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
 }
 </style>

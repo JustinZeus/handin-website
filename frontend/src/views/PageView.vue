@@ -161,7 +161,7 @@ async function handleReorder(ids: string[]) {
   <!-- Floating "Add section" FAB (admin only) -->
   <Teleport to="body">
     <button
-      v-if="isAdmin && currentPage && !currentPage.is_system"
+      v-if="isAdmin && currentPage && currentPage.slug !== 'team'"
       class="fixed right-6 bottom-6 z-30 flex items-center gap-2 rounded-full bg-primary-300 px-5 py-3 font-medium text-gray-900 shadow-lg transition-all hover:bg-primary-400 hover:shadow-xl active:scale-95"
       title="Add a new section to this page"
       @click="showAddModal = true"
