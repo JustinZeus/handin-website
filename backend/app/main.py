@@ -9,8 +9,10 @@ from app.config import get_settings
 from app.database import init_db
 from app.routes.assets import router as assets_router
 from app.routes.auth import router as auth_router
+from app.routes.pages import router as pages_router
 from app.routes.segments import router as segments_router
 from app.routes.site import router as site_router
+from app.routes.team import router as team_router
 
 
 @asynccontextmanager
@@ -25,9 +27,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="Handin Website", lifespan=lifespan)
 
 app.include_router(auth_router)
+app.include_router(pages_router)
 app.include_router(segments_router)
 app.include_router(site_router)
 app.include_router(assets_router)
+app.include_router(team_router)
 
 
 @app.get("/api/health")

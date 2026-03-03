@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.auth import require_admin
 from app.config import get_settings
@@ -34,8 +34,11 @@ Admin = Annotated[None, Depends(require_admin)]
 
 
 @router.get("/")
-def list_segments(db_path: DbPath) -> list[SegmentResponse]:
-    segments = segment_service.list_segments(db_path)
+def list_segments(
+    db_path: DbPath,
+    page_id: Annotated[str | None, Query()] = None,
+) -> list[SegmentResponse]:
+    segments = segment_service.list_segments(db_path, page_id=page_id)
     return [SegmentResponse.model_validate(s.model_dump()) for s in segments]
 
 

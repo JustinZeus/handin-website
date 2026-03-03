@@ -9,7 +9,7 @@ defineProps<{
 <template>
   <iframe
     :src="segment.content"
-    class="h-[600px] w-full rounded border-none"
+    class="h-[85vh] w-full rounded border-none"
     :title="segment.title"
   />
 </template>

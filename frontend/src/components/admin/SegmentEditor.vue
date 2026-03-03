@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import type { Segment } from "@/types/segment";
 import AssetUploader from "@/components/admin/AssetUploader.vue";
+import RichTextEditor from "@/components/admin/RichTextEditor.vue";
 
 const props = defineProps<{
   segment: Segment;
@@ -17,11 +18,21 @@ const title = ref(props.segment.title);
 const content = ref(props.segment.content);
 const metadata = ref<Record<string, unknown>>({ ...props.segment.metadata });
 const showDeleteConfirm = ref(false);
+const teamMembers = ref<{ name: string; student_number: string }[]>(
+  Array.isArray(props.segment.metadata.members)
+    ? [...(props.segment.metadata.members as { name: string; student_number: string }[])]
+    : [],
+);
+const newMemberName = ref("");
+const newMemberNumber = ref("");
 
 function handleSave() {
   const updates: { title?: string; content?: string; metadata?: Record<string, unknown> } = {};
   if (title.value !== props.segment.title) updates.title = title.value;
   if (content.value !== props.segment.content) updates.content = content.value;
+  if (props.segment.type === "team") {
+    metadata.value = { ...metadata.value, members: teamMembers.value };
+  }
   if (JSON.stringify(metadata.value) !== JSON.stringify(props.segment.metadata)) {
     updates.metadata = metadata.value;
   }
@@ -71,20 +82,15 @@ const assetAcceptMap: Record<string, string> = {
     <div class="mb-4">
       <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Content</label>
 
-      <!-- Markdown: textarea -->
-      <textarea
-        v-if="segment.type === 'markdown'"
-        v-model="content"
-        rows="8"
-        class="w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
-      />
+      <!-- Markdown: rich text editor -->
+      <RichTextEditor v-if="segment.type === 'markdown'" v-model="content" />
 
-      <!-- Iframe / Link: URL input -->
+      <!-- Iframe: URL input -->
       <input
-        v-else-if="segment.type === 'iframe' || segment.type === 'link'"
+        v-else-if="segment.type === 'iframe'"
         v-model="content"
         type="url"
-        :placeholder="segment.type === 'link' ? 'https://external-site.com' : 'https://...'"
+        placeholder="https://..."
         class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
       />
 
@@ -125,9 +131,46 @@ const assetAcceptMap: Record<string, string> = {
         </div>
         <AssetUploader
           accept="image/*"
-          label="Upload gallery image"
+          :multiple="true"
+          label="Click to upload photos, or drag and drop"
           @uploaded="handleGalleryImageUploaded"
         />
+      </div>
+
+      <!-- Team: member list -->
+      <div v-else-if="segment.type === 'team'">
+        <div v-if="teamMembers.length > 0" class="mb-3 space-y-1">
+          <div
+            v-for="(member, i) in teamMembers"
+            :key="i"
+            class="flex items-center justify-between rounded bg-white px-3 py-1.5 text-sm dark:bg-slate-700"
+          >
+            <span class="text-slate-900 dark:text-slate-100">{{ member.name }}</span>
+            <span class="font-mono text-slate-500 dark:text-slate-400">{{ member.student_number }}</span>
+            <button class="ml-2 shrink-0 text-red-400 hover:text-red-600" @click="teamMembers = teamMembers.filter((_, j) => j !== i)">&times;</button>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <input
+            v-model="newMemberName"
+            type="text"
+            placeholder="Name"
+            class="min-w-0 flex-1 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+          />
+          <input
+            v-model="newMemberNumber"
+            type="text"
+            placeholder="Student number"
+            class="w-36 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+          />
+          <button
+            :disabled="!newMemberName.trim() || !newMemberNumber.trim()"
+            class="rounded bg-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500"
+            @click="teamMembers = [...teamMembers, { name: newMemberName.trim(), student_number: newMemberNumber.trim() }]; newMemberName = ''; newMemberNumber = ''"
+          >
+            Add
+          </button>
+        </div>
       </div>
     </div>
 

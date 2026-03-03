@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import HomePage from "@/views/HomePage.vue";
+import AppShell from "@/components/layout/AppShell.vue";
 </script>
 
 <template>
-  <HomePage />
+  <AppShell>
+    <RouterView />
+  </AppShell>
 </template>

@@ -1,135 +1,175 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import type { Segment } from "@/types/segment";
+import { ref, nextTick, onMounted, watch, watchEffect } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import Sidebar from "@/components/layout/Sidebar.vue";
+import { usePages } from "@/composables/usePages";
 import { useAdmin } from "@/composables/useAdmin";
-import { useDarkMode } from "@/composables/useDarkMode";
-import SidebarNav from "@/components/layout/SidebarNav.vue";
-import MobileHeader from "@/components/layout/MobileHeader.vue";
-import TokenPrompt from "@/components/admin/TokenPrompt.vue";
-import AdminToolbar from "@/components/admin/AdminToolbar.vue";
+import type { SiteInfo } from "@/types/segment";
+import logoUrl from "@/assets/logo.png";
 
-defineProps<{
-  segments: Segment[];
-  siteTitle: string;
-  activeId: string | null;
-}>();
+const router = useRouter();
+const route = useRoute();
+const { pages, fetchPages } = usePages();
+const { isAdmin, authHeaders } = useAdmin();
 
-const emit = defineEmits<{
-  navigate: [id: string];
-  "add-segment": [];
-  logout: [];
-}>();
+const mobileNavOpen = ref(false);
+const siteTitle = ref("Untitled Site");
+const editingSiteTitle = ref(false);
+const siteTitleInput = ref("");
 
-const { isAdmin } = useAdmin();
-const { isDark, toggle: toggleDark } = useDarkMode();
-
-const showBackToTop = ref(false);
-
-function handleScroll() {
-  showBackToTop.value = window.scrollY > 300;
+async function loadSiteTitle() {
+  try {
+    const res = await fetch("/api/site/");
+    if (res.ok) {
+      const data = (await res.json()) as SiteInfo;
+      siteTitle.value = data.title;
+    }
+  } catch { /* Silently fail */ }
 }
 
-function scrollToTop() {
-  window.scrollTo({ top: 0, behavior: "smooth" });
+function startEditTitle() {
+  if (!isAdmin.value) return;
+  siteTitleInput.value = siteTitle.value;
+  editingSiteTitle.value = true;
+  nextTick(() => { document.getElementById("header-title-input")?.focus(); });
 }
 
-function handleNavigate(id: string) {
-  emit("navigate", id);
+async function saveSiteTitle() {
+  const trimmed = siteTitleInput.value.trim();
+  if (trimmed && trimmed !== siteTitle.value) {
+    try {
+      const res = await fetch("/api/site/", {
+        method: "PUT",
+        headers: { ...authHeaders.value, "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (res.ok) siteTitle.value = trimmed;
+    } catch { /* Silently fail */ }
+  }
+  editingSiteTitle.value = false;
 }
 
-onMounted(() => {
-  window.addEventListener("scroll", handleScroll, { passive: true });
+// Dynamic browser tab title
+watchEffect(() => {
+  const slug = route.params.slug as string | undefined;
+  const page = slug ? pages.value.find((p) => p.slug === slug) : undefined;
+  document.title = page ? `${page.name} | ${siteTitle.value}` : siteTitle.value;
 });
 
-onUnmounted(() => {
-  window.removeEventListener("scroll", handleScroll);
+// Redirect "/" to first page once pages are loaded
+watch(pages, (loaded) => {
+  if (loaded.length > 0 && (route.path === "/" || route.path === "")) {
+    void router.replace({ name: "page", params: { slug: loaded[0].slug } });
+  }
+});
+
+onMounted(async () => {
+  await Promise.all([loadSiteTitle(), fetchPages()]);
+  if (pages.value.length > 0 && (route.path === "/" || route.path === "")) {
+    void router.replace({ name: "page", params: { slug: pages.value[0].slug } });
+  }
 });
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-slate-900">
-    <!-- Sticky header: title bar + nav -->
-    <div class="sticky top-0 z-20">
-      <!-- Title bar -->
-      <header class="flex items-center justify-between bg-primary-300 px-6 py-4">
-        <h1 class="text-xl font-bold text-slate-900">{{ siteTitle }}</h1>
-        <div class="flex items-center gap-2">
-          <!-- Dark mode toggle -->
-          <button
-            class="rounded p-1.5 text-slate-700 transition-colors hover:bg-primary-400/30"
-            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-            @click="toggleDark"
-          >
-            <!-- Sun icon (shown in dark mode) -->
-            <svg v-if="isDark" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <!-- Moon icon (shown in light mode) -->
-            <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          </button>
-          <TokenPrompt />
-        </div>
-      </header>
-
-      <!-- Desktop tab nav -->
-      <div class="hidden md:block">
-        <SidebarNav
-          :segments="segments"
-          :site-title="siteTitle"
-          :active-id="activeId"
-          @navigate="handleNavigate"
-        />
-      </div>
-
-      <!-- Mobile header with hamburger -->
-      <div class="md:hidden">
-        <MobileHeader
-          :site-title="siteTitle"
-          :segments="segments"
-          :active-id="activeId"
-          @navigate="handleNavigate"
-        />
-      </div>
-    </div>
-
-    <!-- Admin toolbar -->
-    <AdminToolbar
-      v-if="isAdmin"
-      @add-segment="$emit('add-segment')"
-      @logout="$emit('logout')"
-    />
-
-    <!-- Main content -->
-    <main class="mx-auto max-w-6xl px-6 py-8">
-      <slot />
-    </main>
-
-    <!-- Back to top button -->
-    <Transition name="fade-up">
+  <div class="flex h-screen flex-col overflow-hidden bg-white dark:bg-gray-900">
+    <!-- Full-width yellow header -->
+    <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-primary-400 bg-primary-300 px-4">
+      <!-- Hamburger (mobile only) -->
       <button
-        v-if="showBackToTop"
-        class="fixed right-6 bottom-6 z-30 rounded-full bg-primary-300 p-3 shadow-lg transition-colors hover:bg-primary-400"
-        title="Back to top"
-        @click="scrollToTop"
+        class="shrink-0 rounded p-1.5 text-gray-700 transition-colors hover:bg-primary-400 md:hidden"
+        aria-label="Open navigation"
+        @click="mobileNavOpen = true"
       >
-        <svg class="h-5 w-5 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-    </Transition>
+
+      <!-- Logo -->
+      <img :src="logoUrl" alt="Logo" class="h-8 w-auto shrink-0" />
+
+      <!-- Site title -->
+      <form v-if="editingSiteTitle" @submit.prevent="saveSiteTitle">
+        <input
+          id="header-title-input"
+          v-model="siteTitleInput"
+          type="text"
+          class="rounded border border-primary-500 bg-primary-200/60 px-2 py-0.5 text-base font-bold text-gray-900 focus:outline-none"
+          @blur="saveSiteTitle"
+          @keydown.escape="editingSiteTitle = false"
+        />
+      </form>
+      <div
+        v-else
+        class="group flex min-w-0 items-center gap-1"
+        :class="isAdmin ? 'cursor-pointer' : ''"
+        :title="isAdmin ? 'Click to rename' : undefined"
+        @click="startEditTitle"
+      >
+        <span class="truncate text-base font-bold text-gray-900">{{ siteTitle }}</span>
+        <svg
+          v-if="isAdmin"
+          class="h-3 w-3 shrink-0 text-gray-600 opacity-0 transition-opacity group-hover:opacity-100"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      </div>
+    </header>
+
+    <!-- Body: sidebar + scrollable content -->
+    <div class="flex min-h-0 flex-1">
+      <!-- Mobile sidebar overlay -->
+      <Transition name="sidebar-fade">
+        <div
+          v-if="mobileNavOpen"
+          class="fixed inset-0 z-40 bg-black/40 md:hidden"
+          @click="mobileNavOpen = false"
+        />
+      </Transition>
+
+      <!-- Mobile sidebar drawer -->
+      <Transition name="sidebar-slide">
+        <div
+          v-show="mobileNavOpen"
+          class="fixed inset-y-0 left-0 z-50 md:hidden"
+        >
+          <Sidebar @close="mobileNavOpen = false" />
+        </div>
+      </Transition>
+
+      <!-- Desktop sidebar (always visible) -->
+      <div class="hidden md:flex md:shrink-0">
+        <Sidebar @close="() => {}" />
+      </div>
+
+      <!-- Scrollable content -->
+      <main class="flex-1 overflow-y-auto">
+        <div class="mx-auto max-w-4xl px-6 py-10">
+          <slot />
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.fade-up-enter-active,
-.fade-up-leave-active {
-  transition: opacity 200ms ease, transform 200ms ease;
+.sidebar-fade-enter-active,
+.sidebar-fade-leave-active {
+  transition: opacity 200ms ease;
 }
-.fade-up-enter-from,
-.fade-up-leave-to {
+.sidebar-fade-enter-from,
+.sidebar-fade-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+}
+
+.sidebar-slide-enter-active,
+.sidebar-slide-leave-active {
+  transition: transform 250ms ease;
+}
+.sidebar-slide-enter-from,
+.sidebar-slide-leave-to {
+  transform: translateX(-100%);
 }
 </style>

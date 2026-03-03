@@ -2,29 +2,27 @@
 import { ref, computed } from "vue";
 import type { SegmentType } from "@/types/segment";
 import AssetUploader from "@/components/admin/AssetUploader.vue";
+import RichTextEditor from "@/components/admin/RichTextEditor.vue";
 
 const emit = defineEmits<{
   create: [data: { type: SegmentType; title: string; content: string; metadata?: Record<string, unknown> }];
   cancel: [];
 }>();
 
-const segmentTypes: { value: SegmentType; label: string }[] = [
-  { value: "markdown", label: "Markdown" },
-  { value: "pdf", label: "PDF" },
-  { value: "video", label: "Video" },
-  { value: "audio", label: "Audio" },
-  { value: "iframe", label: "Iframe" },
-  { value: "gallery", label: "Gallery" },
-  { value: "link", label: "Link" },
+const segmentTypes: { value: SegmentType; label: string; description: string; icon: string }[] = [
+  { value: "markdown", label: "Text", description: "Write formatted text, headings, and lists", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h6" /></svg>' },
+  { value: "gallery", label: "Images", description: "Display a photo gallery", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /><circle cx="8.5" cy="8.5" r="1.5" stroke-width="2" /><polyline points="21 15 16 10 5 21" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>' },
+  { value: "pdf", label: "PDF", description: "Show a PDF document", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>' },
+  { value: "video", label: "Video", description: "Embed a video file", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>' },
+  { value: "audio", label: "Audio", description: "Embed an audio file", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0a3 3 0 003-3V9a3 3 0 00-3 3m0 0a3 3 0 01-3 3V9a3 3 0 013-3" /></svg>' },
+  { value: "iframe", label: "Embed", description: "Embed an external website or tool", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>' },
 ];
 
 const selectedType = ref<SegmentType>("markdown");
 const title = ref("");
 const content = ref("");
 const galleryImages = ref<string[]>([]);
-
 const canSubmit = computed(() => {
-  if (!title.value.trim()) return false;
   if (selectedType.value === "gallery") return galleryImages.value.length > 0;
   if (selectedType.value === "markdown") return true;
   return content.value.trim().length > 0;
@@ -67,82 +65,83 @@ const assetAcceptMap: Record<string, string> = {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       @click.self="$emit('cancel')"
     >
-      <div class="mx-4 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-        <h2 class="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Add New Segment</h2>
+      <div class="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Add a new section</h2>
 
-        <!-- Type selector: button group -->
-        <div class="mb-4">
-          <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
-          <div class="flex flex-wrap gap-2">
+        <!-- Type selector: icon cards -->
+        <div class="mb-5">
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
             <button
               v-for="st in segmentTypes"
               :key="st.value"
-              class="rounded-full px-3 py-1 text-sm font-medium transition-colors"
+              type="button"
+              class="flex flex-col items-center gap-1.5 rounded-lg border-2 py-3 px-2 transition-colors"
               :class="
                 selectedType === st.value
-                  ? 'bg-primary-300 text-slate-900 dark:bg-primary-600 dark:text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  ? 'border-primary-300 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
               "
+              :title="st.description"
               @click="selectedType = st.value; content = ''; galleryImages = []"
             >
-              {{ st.label }}
+              <span class="text-gray-500 dark:text-gray-400" v-html="st.icon" />
+              <span class="text-xs font-medium text-gray-900 dark:text-gray-100">{{ st.label }}</span>
             </button>
           </div>
         </div>
 
         <!-- Title -->
         <div class="mb-4">
-          <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Title</label>
+          <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Section title <span class="font-normal text-gray-400">(optional)</span>
+          </label>
           <input
             v-model="title"
             type="text"
-            placeholder="Segment title"
-            class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+            placeholder="Give this section a title"
+            class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
           />
         </div>
 
         <!-- Content: type-dependent -->
-        <div class="mb-4">
-          <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Content</label>
+        <div class="mb-5">
+          <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
 
-          <!-- Markdown: textarea -->
-          <textarea
-            v-if="selectedType === 'markdown'"
-            v-model="content"
-            rows="6"
-            placeholder="Markdown content..."
-            class="w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
-          />
+          <!-- Markdown: rich text editor -->
+          <RichTextEditor v-if="selectedType === 'markdown'" v-model="content" />
 
-          <!-- Iframe / Link: URL input -->
-          <input
-            v-else-if="selectedType === 'iframe' || selectedType === 'link'"
-            v-model="content"
-            type="url"
-            :placeholder="selectedType === 'link' ? 'https://external-site.com' : 'https://...'"
-            class="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
-          />
+          <!-- Iframe: URL input -->
+          <div v-else-if="selectedType === 'iframe'">
+            <p class="mb-2 text-xs text-gray-400">Paste the URL of the website or tool you want to embed.</p>
+            <input
+              v-model="content"
+              type="url"
+              placeholder="https://..."
+              class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+            />
+          </div>
 
           <!-- PDF / Video / Audio -->
           <div v-else-if="selectedType === 'pdf' || selectedType === 'video' || selectedType === 'audio'">
-            <div v-if="content" class="mb-2 flex items-center gap-2 rounded bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            <div v-if="content" class="mb-2 flex items-center gap-2 rounded bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-300">
               <span class="truncate">{{ content }}</span>
               <button class="shrink-0 text-red-400 hover:text-red-600" @click="content = ''">&times;</button>
             </div>
             <AssetUploader
               :accept="assetAcceptMap[selectedType]"
-              :label="`Upload ${selectedType} file`"
+              :label="`Click to upload your ${selectedType} file, or drag and drop`"
               @uploaded="handleAssetUploaded"
             />
           </div>
 
           <!-- Gallery -->
           <div v-else-if="selectedType === 'gallery'">
+            <p class="mb-2 text-xs text-gray-400">Upload one or more photos. You can add more later.</p>
             <div v-if="galleryImages.length > 0" class="mb-3 grid grid-cols-4 gap-2">
               <div
                 v-for="(img, i) in galleryImages"
                 :key="i"
-                class="group relative aspect-square overflow-hidden rounded bg-slate-100"
+                class="group relative aspect-square overflow-hidden rounded bg-gray-100 dark:bg-gray-700"
               >
                 <img :src="img" class="h-full w-full object-cover" />
                 <button
@@ -153,24 +152,24 @@ const assetAcceptMap: Record<string, string> = {
                 </button>
               </div>
             </div>
-            <AssetUploader accept="image/*" label="Upload gallery image" @uploaded="handleGalleryImageUploaded" />
+            <AssetUploader accept="image/*" :multiple="true" label="Click to upload photos, or drag and drop" @uploaded="handleGalleryImageUploaded" />
           </div>
         </div>
 
         <!-- Actions -->
         <div class="flex justify-end gap-2">
           <button
-            class="rounded px-3 py-1.5 text-sm text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            class="rounded px-3 py-1.5 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             @click="$emit('cancel')"
           >
             Cancel
           </button>
           <button
             :disabled="!canSubmit"
-            class="rounded bg-primary-300 px-4 py-1.5 text-sm font-medium text-slate-900 transition-colors hover:bg-primary-400 disabled:opacity-50 dark:bg-primary-600 dark:text-white dark:hover:bg-primary-500"
+            class="rounded bg-primary-300 px-4 py-1.5 text-sm font-medium text-gray-900 transition-colors hover:bg-primary-400 disabled:opacity-50"
             @click="handleSubmit"
           >
-            Create
+            Add section
           </button>
         </div>
       </div>
