@@ -65,6 +65,7 @@ def test_segments_table_schema(db: Path) -> None:
         "title",
         "content",
         "metadata",
+        "page_id",
         "created_at",
         "updated_at",
     }

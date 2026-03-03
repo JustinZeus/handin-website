@@ -24,10 +24,12 @@ def _row_to_segment(row: sqlite3.Row) -> Segment:
 
 def create_segment(db_path: Path, request: SegmentCreateRequest) -> Segment:
     conn = get_connection(db_path)
+    conn.isolation_level = None  # manual transaction control
     try:
+        conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
             "SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order"
-            " FROM segments WHERE page_id = ?",
+            " FROM segments WHERE page_id IS ?",
             (request.page_id,),
         ).fetchone()
         sort_order: int = row["next_order"] if row else 0
@@ -51,7 +53,7 @@ def create_segment(db_path: Path, request: SegmentCreateRequest) -> Segment:
                 now,
             ),
         )
-        conn.commit()
+        conn.execute("COMMIT")
 
         return Segment(
             id=segment_id,
@@ -64,6 +66,9 @@ def create_segment(db_path: Path, request: SegmentCreateRequest) -> Segment:
             created_at=datetime.fromisoformat(now),
             updated_at=datetime.fromisoformat(now),
         )
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
     finally:
         conn.close()
 

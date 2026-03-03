@@ -14,28 +14,53 @@
 
 ## What is this?
 
-I built this as a boilerplate for group hand-ins at Utrecht University. It lets you combine PDFs, video, audio, markdown, embedded content, and image galleries into a single web page. I'm making it publicly available in case anyone else finds it useful.
+I built this as a boilerplate for group hand-ins at Utrecht University. It lets you combine PDFs, video, audio, markdown, embedded content, image galleries, and team member listings into a multi-page website. I'm making it publicly available in case anyone else finds it useful.
 
 ## Features
 
-- **Multimodal content** — markdown, PDF, video, audio, iframes, image galleries, and links
-- **Drag-and-drop ordering** — reorder segments visually
+- **Multimodal content** — markdown, PDF, video, audio, iframes, image galleries, and team members
+- **Multi-page** — create and manage multiple pages, each with its own slug and segments
+- **Drag-and-drop ordering** — reorder pages and segments visually
 - **Token-based admin** — single admin token, no user accounts needed
 - **Dark mode** — automatic dark/light theme
 - **Zero-config database** — SQLite with WAL mode, no external DB to manage
 - **Single container** — FastAPI backend + Vue 3 SPA ship as one Docker image
 
-## Quick Start
+## Deployment
+
+Create a `compose.yml`:
+
+```yaml
+name: handin
+
+services:
+  handin:
+    image: justinzeus/handin:latest
+    restart: unless-stopped
+    environment:
+      HANDIN_ADMIN_TOKEN: ${HANDIN_ADMIN_TOKEN:?set HANDIN_ADMIN_TOKEN}
+      HANDIN_SITE_TITLE: ${HANDIN_SITE_TITLE:-Untitled Site}
+      HANDIN_DATA_DIR: /data
+    volumes:
+      - handin_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  handin_data:
+```
+
+Then:
 
 ```bash
-git clone https://github.com/JustinZeus/handin-website.git
-cd handin-website
-cp .env.example .env
-# Edit .env and set HANDIN_ADMIN_TOKEN to something secure
+export HANDIN_ADMIN_TOKEN=$(openssl rand -hex 32)
 docker compose up -d
 ```
 
-The app listens on port 8000 inside the container. Wire it through your reverse proxy (e.g. Caddy) to expose it.
+The app listens on port 8000. Wire it through your reverse proxy (e.g. Caddy) to expose it.
 
 ## How It Works
 
@@ -53,7 +78,7 @@ The Vue 3 frontend is built at image build time and served as static files by Fa
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HANDIN_ADMIN_TOKEN` | *required* | Bearer token for admin endpoints |
-| `HANDIN_SITE_TITLE` | `Untitled Site` | Page title |
+| `HANDIN_SITE_TITLE` | `Untitled Site` | Page title shown in the browser tab |
 | `HANDIN_DATA_DIR` | `./data` | SQLite DB + uploaded assets directory |
 | `HANDIN_MAX_UPLOAD_BYTES` | `100000000` | Max file upload size (~100 MB) |
 | `HANDIN_ALLOWED_UPLOAD_TYPES` | `pdf,png,jpg,...` | Comma-separated allowed file extensions |
@@ -69,8 +94,25 @@ The Vue 3 frontend is built at image build time and served as static files by Fa
 ## Development
 
 ```bash
+# Start backend + frontend dev server
+docker compose up
+
+# Or run locally:
+
 # Backend
 uv sync --group dev
+uv run fastapi dev backend/app/main.py --port 8000
+
+# Frontend (separate terminal)
+cd frontend
+npm ci
+npm run dev
+```
+
+Lint and type-check:
+
+```bash
+# Backend
 uv run ruff check backend/
 uv run ruff format --check backend/
 uv run mypy
@@ -78,7 +120,5 @@ uv run pytest
 
 # Frontend
 cd frontend
-npm ci
 npx vue-tsc --noEmit
-npm run dev
 ```

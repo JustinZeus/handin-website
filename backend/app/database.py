@@ -1,8 +1,22 @@
 import sqlite3
+import threading
 from pathlib import Path
+
+_init_lock = threading.Lock()
+_initialized_dbs: set[Path] = set()
 
 
 def init_db(db_path: Path) -> None:
+    if db_path in _initialized_dbs:
+        return
+    with _init_lock:
+        if db_path in _initialized_dbs:
+            return
+        _init_db_locked(db_path)
+        _initialized_dbs.add(db_path)
+
+
+def _init_db_locked(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
