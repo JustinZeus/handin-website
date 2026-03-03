@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
@@ -42,4 +43,11 @@ def health_check() -> dict[str, str]:
 # Serve built frontend SPA (must be registered last — catch-all)
 _static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 if _static_dir.is_dir():
-    app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="static")
+    app.mount("/assets", StaticFiles(directory=str(_static_dir / "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str) -> FileResponse:
+        file = _static_dir / full_path
+        if file.is_file():
+            return FileResponse(file)
+        return FileResponse(_static_dir / "index.html")
