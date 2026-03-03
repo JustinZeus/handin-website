@@ -61,7 +61,7 @@ watchEffect(() => {
 // Redirect "/" to first page once pages are loaded
 watch(pages, (loaded) => {
   if (loaded.length > 0 && (route.path === "/" || route.path === "")) {
-    void router.replace({ name: "page", params: { slug: loaded[0].slug } });
+    void router.replace({ name: "page", params: { slug: "home" } });
   }
 });
 
@@ -76,7 +76,7 @@ function scrollToTop() {
 onMounted(async () => {
   await Promise.all([loadSiteTitle(), fetchPages()]);
   if (pages.value.length > 0 && (route.path === "/" || route.path === "")) {
-    void router.replace({ name: "page", params: { slug: pages.value[0].slug } });
+    void router.replace({ name: "page", params: { slug: "home" } });
   }
 });
 </script>

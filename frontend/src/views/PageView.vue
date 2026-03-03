@@ -37,11 +37,11 @@ async function fetchSegments(pageId: string) {
 function resolvePage(slug: string) {
   if (!pages.value.length) return;
   const found = pages.value.find((p) => p.slug === slug);
-  if (found) {
+  if (found && (!found.is_hidden || isAdmin.value)) {
     currentPage.value = found;
     void fetchSegments(found.id);
   } else {
-    void router.replace({ name: "page", params: { slug: pages.value[0].slug } });
+    void router.replace({ name: "page", params: { slug: "home" } });
   }
 }
 

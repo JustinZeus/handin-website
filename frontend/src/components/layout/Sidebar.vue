@@ -48,14 +48,21 @@ async function saveRename(page: Page) {
 }
 
 // --- Delete page ---
+const confirmDeleteId = ref<string | null>(null);
+
 async function handleDelete(page: Page) {
+  if (confirmDeleteId.value !== page.id) {
+    confirmDeleteId.value = page.id;
+    return;
+  }
+  confirmDeleteId.value = null;
   const result = await deletePage(page.id);
   if (result.ok && route.params.slug === page.slug) {
     const remaining = pages.value.filter((p) => p.id !== page.id);
     if (remaining.length > 0) {
       await router.push({ name: "page", params: { slug: remaining[0].slug } });
     } else {
-      await router.push("/");
+      await router.push({ name: "page", params: { slug: "home" } });
     }
   }
 }
@@ -157,6 +164,7 @@ async function handleLogin() {
               v-else
               :to="{ name: 'page', params: { slug: page.slug } }"
               class="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm transition-colors"
+              @blur.capture="confirmDeleteId = null"
               :class="[
                 $route.params.slug === page.slug
                   ? 'border-l-2 border-primary-400 bg-primary-50 font-medium text-gray-900 dark:border-primary-400 dark:bg-gray-600 dark:text-white'
@@ -200,8 +208,9 @@ async function handleLogin() {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </button>
-                <!-- Delete -->
+                <!-- Delete (two-step confirm) -->
                 <button
+                  v-if="confirmDeleteId !== page.id"
                   class="rounded p-0.5 text-gray-400 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400"
                   title="Delete page"
                   @click.prevent="handleDelete(page)"
@@ -210,6 +219,12 @@ async function handleLogin() {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
+                <button
+                  v-else
+                  class="rounded px-1 py-0.5 text-xs font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                  title="Click again to confirm deletion"
+                  @click.prevent="handleDelete(page)"
+                >sure?</button>
               </span>
             </router-link>
           </div>
