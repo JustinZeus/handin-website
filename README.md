@@ -44,7 +44,7 @@ services:
     volumes:
       - handin_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health >/dev/null || exit 1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 10s
       timeout: 5s
       retries: 12
