@@ -10,6 +10,8 @@ defineProps<{
   <video
     :src="segment.content"
     controls
+    preload="metadata"
+    playsinline
     class="w-full rounded"
   >
     Your browser does not support the video element.
