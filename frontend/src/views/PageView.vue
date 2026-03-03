@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
-import { useRoute } from "vue-router";
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { usePages } from "@/composables/usePages";
 import { useAdmin } from "@/composables/useAdmin";
 import type { Page, Segment, SegmentType } from "@/types/segment";
@@ -9,6 +9,7 @@ import AddSegmentModal from "@/components/admin/AddSegmentModal.vue";
 import TeamPage from "@/views/TeamPage.vue";
 
 const route = useRoute();
+const router = useRouter();
 const { pages } = usePages();
 const { authHeaders, isAdmin } = useAdmin();
 
@@ -17,7 +18,6 @@ const segments = ref<Segment[]>([]);
 const loading = ref(false);
 const segmentError = ref<string | null>(null);
 const showAddModal = ref(false);
-const pageNotFound = ref(false);
 
 async function fetchSegments(pageId: string) {
   loading.value = true;
@@ -36,14 +36,12 @@ async function fetchSegments(pageId: string) {
 
 function resolvePage(slug: string) {
   if (!pages.value.length) return;
-  pageNotFound.value = false;
   const found = pages.value.find((p) => p.slug === slug);
   if (found) {
     currentPage.value = found;
     void fetchSegments(found.id);
   } else {
-    currentPage.value = null;
-    pageNotFound.value = true;
+    void router.replace({ name: "page", params: { slug: pages.value[0].slug } });
   }
 }
 
@@ -102,13 +100,8 @@ async function handleReorder(ids: string[]) {
 </script>
 
 <template>
-  <!-- Not found -->
-  <div v-if="pageNotFound" class="flex flex-col items-center justify-center py-32 text-gray-400">
-    <p class="text-lg">Page not found.</p>
-  </div>
-
   <!-- Waiting for pages to load -->
-  <div v-else-if="!currentPage && !pageNotFound" class="flex items-center justify-center py-32">
+  <div v-if="!currentPage" class="flex items-center justify-center py-32">
     <svg class="h-8 w-8 animate-spin text-primary-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -116,7 +109,7 @@ async function handleReorder(ids: string[]) {
   </div>
 
   <!-- Page content -->
-  <template v-else-if="currentPage">
+  <template v-else>
     <!-- Team system page -->
     <TeamPage v-if="currentPage.slug === 'team'" />
 
