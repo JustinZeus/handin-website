@@ -84,7 +84,7 @@ onMounted(async () => {
 <template>
   <div class="flex h-screen flex-col overflow-hidden bg-white dark:bg-gray-900">
     <!-- Full-width yellow header -->
-    <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-primary-400 bg-primary-300 px-4">
+    <header class="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-primary-400 bg-primary-300 px-4">
       <!-- Hamburger (mobile only) -->
       <button
         class="shrink-0 rounded p-1.5 text-gray-700 transition-colors hover:bg-primary-400 md:hidden"
@@ -97,7 +97,7 @@ onMounted(async () => {
       </button>
 
       <!-- Logo -->
-      <img :src="logoUrl" alt="Logo" class="h-8 w-auto shrink-0" />
+      <img :src="logoUrl" alt="Logo" class="h-10 w-auto shrink-0" />
 
       <!-- Site title -->
       <form v-if="editingSiteTitle" @submit.prevent="saveSiteTitle">
@@ -117,7 +117,7 @@ onMounted(async () => {
         :title="isAdmin ? 'Click to rename' : undefined"
         @click="startEditTitle"
       >
-        <span class="truncate text-base font-bold text-gray-900">{{ siteTitle }}</span>
+        <span class="truncate text-lg font-bold text-gray-900">{{ siteTitle }}</span>
         <svg
           v-if="isAdmin"
           class="h-3 w-3 shrink-0 text-gray-600 opacity-0 transition-opacity group-hover:opacity-100"
@@ -156,7 +156,7 @@ onMounted(async () => {
 
       <!-- Scrollable content -->
       <main ref="mainEl" class="flex-1 overflow-y-auto" @scroll="handleScroll">
-        <div class="mx-auto max-w-4xl px-6 py-10">
+        <div class="mx-auto max-w-5xl px-6 py-10">
           <slot />
         </div>
       </main>

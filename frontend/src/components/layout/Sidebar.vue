@@ -107,7 +107,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <nav class="flex h-full w-60 flex-col border-r border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700">
+  <nav class="flex h-full w-52 flex-col border-r border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700">
     <!-- Pages list (scrollable) -->
     <div class="flex-1 overflow-y-auto py-2">
       <!-- Pinned Home page (always at top, no actions) -->

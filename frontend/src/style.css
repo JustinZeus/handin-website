@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Fluid base font: 15px on small screens, scales to 18px at ~1800px wide */
+:root {
+  font-size: clamp(15px, 1vw, 18px);
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
