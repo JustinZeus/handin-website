@@ -108,7 +108,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <nav class="flex h-full w-72 flex-col border-r border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700">
+  <nav class="flex h-full w-80 flex-col border-r border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700">
     <!-- Pages list (scrollable) -->
     <div class="flex-1 overflow-y-auto py-2">
       <!-- Pinned Home page (always at top, no actions) -->
@@ -125,7 +125,7 @@ async function handleLogin() {
             @click="$emit('close')"
           >
             <span v-if="isAdmin" class="w-3.5 shrink-0" />
-            <span class="flex-1 line-clamp-2">{{ pages.find(p => p.slug === 'home')?.name }}</span>
+            <span class="flex-1 line-clamp-3">{{ pages.find(p => p.slug === 'home')?.name }}</span>
           </router-link>
         </div>
       </template>
@@ -174,7 +174,7 @@ async function handleLogin() {
                   <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
                 </svg>
               </span>
-              <span class="flex-1 line-clamp-2">{{ page.name }}</span>
+              <span class="flex-1 line-clamp-3">{{ page.name }}</span>
               <span class="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
                 <!-- Hide/show toggle -->
                 <button
@@ -231,7 +231,7 @@ async function handleLogin() {
           @click="$emit('close')"
         >
           <span class="w-3.5 shrink-0" />
-          <span class="flex-1 line-clamp-2">{{ page.name }}</span>
+          <span class="flex-1 line-clamp-3">{{ page.name }}</span>
           <span class="flex shrink-0 items-center opacity-0 group-hover:opacity-100">
             <button
               class="rounded p-0.5 transition-colors"
