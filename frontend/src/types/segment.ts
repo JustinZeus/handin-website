@@ -1,4 +1,13 @@
-export type SegmentType = "markdown" | "pdf" | "video" | "audio" | "iframe" | "gallery" | "team";
+export type SegmentType = "markdown" | "pdf" | "video" | "audio" | "iframe" | "gallery" | "team" | "sources";
+
+export interface Source {
+  id: string;
+  authors: string;
+  year: string;
+  title: string;
+  source: string;
+  url: string;
+}
 
 export interface Segment {
   id: string;

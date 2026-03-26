@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import type { SegmentType } from "@/types/segment";
+import type { SegmentType, Source } from "@/types/segment";
 import AssetUploader from "@/components/admin/AssetUploader.vue";
 import RichTextEditor from "@/components/admin/RichTextEditor.vue";
+import { formatApaCitation } from "@/utils/formatApa";
 
 const emit = defineEmits<{
   create: [data: { type: SegmentType; title: string; content: string; metadata?: Record<string, unknown> }];
@@ -16,14 +17,30 @@ const segmentTypes: { value: SegmentType; label: string; description: string; ic
   { value: "video", label: "Video", description: "Embed a video file", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>' },
   { value: "audio", label: "Audio", description: "Embed an audio file", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0a3 3 0 003-3V9a3 3 0 00-3 3m0 0a3 3 0 01-3 3V9a3 3 0 013-3" /></svg>' },
   { value: "iframe", label: "Embed", description: "Embed an external website or tool", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>' },
+  { value: "sources", label: "Sources", description: "Add an APA reference list", icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>' },
 ];
 
 const selectedType = ref<SegmentType>("markdown");
 const title = ref("");
 const content = ref("");
 const galleryImages = ref<string[]>([]);
+const sources = ref<Source[]>([]);
+const sourceForm = ref({ authors: "", year: "", title: "", source: "", url: "" });
+
+function addSource() {
+  const f = sourceForm.value;
+  if (!f.authors.trim() && !f.title.trim()) return;
+  sources.value = [...sources.value, { id: crypto.randomUUID(), ...f }];
+  sourceForm.value = { authors: "", year: "", title: "", source: "", url: "" };
+}
+
+function removeSource(id: string) {
+  sources.value = sources.value.filter((s) => s.id !== id);
+}
+
 const canSubmit = computed(() => {
   if (selectedType.value === "gallery") return galleryImages.value.length > 0;
+  if (selectedType.value === "sources") return sources.value.length > 0;
   if (selectedType.value === "markdown") return true;
   return content.value.trim().length > 0;
 });
@@ -49,6 +66,9 @@ function handleSubmit() {
   if (selectedType.value === "gallery") {
     data.metadata = { images: galleryImages.value };
   }
+  if (selectedType.value === "sources") {
+    data.metadata = { sources: sources.value };
+  }
   emit("create", data);
 }
 
@@ -70,7 +90,7 @@ const assetAcceptMap: Record<string, string> = {
 
         <!-- Type selector: icon cards -->
         <div class="mb-5">
-          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-7">
             <button
               v-for="st in segmentTypes"
               :key="st.value"
@@ -82,7 +102,7 @@ const assetAcceptMap: Record<string, string> = {
                   : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
               "
               :title="st.description"
-              @click="selectedType = st.value; content = ''; galleryImages = []"
+              @click="selectedType = st.value; content = ''; galleryImages = []; sources = []"
             >
               <span class="text-gray-500 dark:text-gray-400" v-html="st.icon" />
               <span class="text-xs font-medium text-gray-900 dark:text-gray-100">{{ st.label }}</span>
@@ -153,6 +173,74 @@ const assetAcceptMap: Record<string, string> = {
               </div>
             </div>
             <AssetUploader accept="image/*" :multiple="true" label="Click to upload photos, or drag and drop" @uploaded="handleGalleryImageUploaded" />
+          </div>
+
+          <!-- Sources -->
+          <div v-else-if="selectedType === 'sources'">
+            <!-- Added sources list -->
+            <div v-if="sources.length > 0" class="mb-3 space-y-2">
+              <div
+                v-for="source in sources"
+                :key="source.id"
+                class="group flex items-start gap-2 rounded bg-gray-50 px-3 py-2 text-sm dark:bg-gray-700"
+              >
+                <p
+                  class="min-w-0 flex-1 pl-6 -indent-6 text-gray-700 dark:text-gray-200"
+                  v-html="formatApaCitation(source)"
+                />
+                <button
+                  class="shrink-0 text-red-400 hover:text-red-600"
+                  @click="removeSource(source.id)"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+
+            <!-- Source input form -->
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <input
+                  v-model="sourceForm.authors"
+                  type="text"
+                  placeholder="Authors (e.g. Liu, Z., Zhang, W., & Yang, P.)"
+                  class="min-w-0 flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+                />
+                <input
+                  v-model="sourceForm.year"
+                  type="text"
+                  placeholder="Year"
+                  class="w-20 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+                />
+              </div>
+              <input
+                v-model="sourceForm.title"
+                type="text"
+                placeholder="Title"
+                class="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+              />
+              <div class="flex gap-2">
+                <input
+                  v-model="sourceForm.source"
+                  type="text"
+                  placeholder="Journal, publisher, or site name"
+                  class="min-w-0 flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+                />
+                <input
+                  v-model="sourceForm.url"
+                  type="text"
+                  placeholder="URL or DOI link (optional)"
+                  class="min-w-0 flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+                />
+              </div>
+              <button
+                :disabled="!sourceForm.authors.trim() && !sourceForm.title.trim()"
+                class="rounded bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                @click="addSource"
+              >
+                Add source
+              </button>
+            </div>
           </div>
         </div>
 

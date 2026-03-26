@@ -13,6 +13,7 @@ class SegmentType(StrEnum):
     IFRAME = "iframe"
     GALLERY = "gallery"
     TEAM = "team"
+    SOURCES = "sources"
 
 
 class Segment(BaseModel):

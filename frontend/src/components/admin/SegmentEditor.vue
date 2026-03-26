@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import type { Segment } from "@/types/segment";
+import type { Segment, Source } from "@/types/segment";
 import AssetUploader from "@/components/admin/AssetUploader.vue";
 import RichTextEditor from "@/components/admin/RichTextEditor.vue";
+import { formatApaCitation } from "@/utils/formatApa";
 
 const props = defineProps<{
   segment: Segment;
@@ -26,6 +27,48 @@ const teamMembers = ref<{ name: string; student_number: string }[]>(
 const newMemberName = ref("");
 const newMemberNumber = ref("");
 
+const sources = ref<Source[]>(
+  Array.isArray(props.segment.metadata.sources)
+    ? [...(props.segment.metadata.sources as Source[])]
+    : [],
+);
+const editingSourceId = ref<string | null>(null);
+const sourceForm = ref({ authors: "", year: "", title: "", source: "", url: "" });
+
+function resetSourceForm() {
+  sourceForm.value = { authors: "", year: "", title: "", source: "", url: "" };
+  editingSourceId.value = null;
+}
+
+function addOrUpdateSource() {
+  const f = sourceForm.value;
+  if (!f.authors.trim() && !f.title.trim()) return;
+  if (editingSourceId.value) {
+    sources.value = sources.value.map((s) =>
+      s.id === editingSourceId.value ? { ...s, ...f } : s,
+    );
+  } else {
+    sources.value = [...sources.value, { id: crypto.randomUUID(), ...f }];
+  }
+  resetSourceForm();
+}
+
+function editSource(source: Source) {
+  editingSourceId.value = source.id;
+  sourceForm.value = {
+    authors: source.authors,
+    year: source.year,
+    title: source.title,
+    source: source.source,
+    url: source.url,
+  };
+}
+
+function removeSource(id: string) {
+  sources.value = sources.value.filter((s) => s.id !== id);
+  if (editingSourceId.value === id) resetSourceForm();
+}
+
 function normaliseUrl(url: string): string {
   const trimmed = url.trim();
   if (trimmed && !/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
@@ -40,6 +83,9 @@ function handleSave() {
   if (savedContent !== props.segment.content) updates.content = savedContent;
   if (props.segment.type === "team") {
     metadata.value = { ...metadata.value, members: teamMembers.value };
+  }
+  if (props.segment.type === "sources") {
+    metadata.value = { ...metadata.value, sources: sources.value };
   }
   if (JSON.stringify(metadata.value) !== JSON.stringify(props.segment.metadata)) {
     updates.metadata = metadata.value;
@@ -182,6 +228,95 @@ const assetAcceptMap: Record<string, string> = {
           >
             Add
           </button>
+        </div>
+      </div>
+
+      <!-- Sources: reference list -->
+      <div v-else-if="segment.type === 'sources'">
+        <!-- Existing sources -->
+        <div v-if="sources.length > 0" class="mb-4 space-y-2">
+          <div
+            v-for="source in sources"
+            :key="source.id"
+            class="group flex items-start gap-2 rounded bg-white px-3 py-2 text-sm dark:bg-slate-700"
+          >
+            <p
+              class="min-w-0 flex-1 pl-6 -indent-6 text-slate-700 dark:text-slate-200"
+              v-html="formatApaCitation(source)"
+            />
+            <div class="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100">
+              <button
+                class="rounded p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                title="Edit"
+                @click="editSource(source)"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button
+                class="rounded p-1 text-red-400 hover:text-red-600"
+                title="Remove"
+                @click="removeSource(source.id)"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add/edit source form -->
+        <div class="space-y-2">
+          <div class="flex gap-2">
+            <input
+              v-model="sourceForm.authors"
+              type="text"
+              placeholder="Authors (e.g. Liu, Z., Zhang, W., & Yang, P.)"
+              class="min-w-0 flex-1 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+            />
+            <input
+              v-model="sourceForm.year"
+              type="text"
+              placeholder="Year"
+              class="w-20 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+            />
+          </div>
+          <input
+            v-model="sourceForm.title"
+            type="text"
+            placeholder="Title"
+            class="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+          />
+          <div class="flex gap-2">
+            <input
+              v-model="sourceForm.source"
+              type="text"
+              placeholder="Journal, publisher, or site name"
+              class="min-w-0 flex-1 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+            />
+            <input
+              v-model="sourceForm.url"
+              type="text"
+              placeholder="URL or DOI link (optional)"
+              class="min-w-0 flex-1 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-500"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              :disabled="!sourceForm.authors.trim() && !sourceForm.title.trim()"
+              class="rounded bg-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500"
+              @click="addOrUpdateSource"
+            >
+              {{ editingSourceId ? "Update" : "Add" }}
+            </button>
+            <button
+              v-if="editingSourceId"
+              class="rounded px-3 py-1.5 text-sm text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              @click="resetSourceForm"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
